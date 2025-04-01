@@ -1,7 +1,7 @@
 package main
 
 import (
-	"frapo/internal/app"
+	"frappuccino/internal/app"
 )
 
 func main() {

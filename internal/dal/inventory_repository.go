@@ -3,7 +3,7 @@ package dal
 import (
 	"database/sql"
 	"errors"
-	model "frapo/models"
+	model "frappuccino/models"
 	"time"
 )
 

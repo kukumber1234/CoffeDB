@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"frapo/config"
+	"frappuccino/config"
 )
 
 var once sync.Once

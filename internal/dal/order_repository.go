@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	model "frapo/models"
+	model "frappuccino/models"
 	"time"
 )
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	model "frapo/models"
+	model "frappuccino/models"
 
 	"github.com/lib/pq"
 )

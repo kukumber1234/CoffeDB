@@ -2,8 +2,8 @@ package service
 
 import (
 	"errors"
-	"frapo/internal/dal"
-	"frapo/models"
+	"frappuccino/internal/dal"
+	"frappuccino/models"
 )
 
 type InventoryService interface {

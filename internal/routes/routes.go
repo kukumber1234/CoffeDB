@@ -3,9 +3,9 @@ package routes
 import (
 	"database/sql"
 
-	"frapo/internal/dal"
-	"frapo/internal/handler"
-	"frapo/internal/service"
+	"frappuccino/internal/dal"
+	"frappuccino/internal/handler"
+	"frappuccino/internal/service"
 	"net/http"
 )
 

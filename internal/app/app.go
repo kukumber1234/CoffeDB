@@ -2,9 +2,9 @@ package app
 
 import (
 	"flag"
-	"frapo/config"
-	"frapo/internal/dal"
-	"frapo/internal/routes"
+	"frappuccino/config"
+	"frappuccino/internal/dal"
+	"frappuccino/internal/routes"
 	"log"
 	"net/http"
 )

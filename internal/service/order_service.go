@@ -1,8 +1,8 @@
 package service
 
 import (
-	"frapo/internal/dal"
-	model "frapo/models"
+	"frappuccino/internal/dal"
+	model "frappuccino/models"
 )
 
 type OrdersService interface {

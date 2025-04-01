@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"frapo/internal/service"
+	"frappuccino/internal/service"
 	"net/http"
 	"strings"
 )

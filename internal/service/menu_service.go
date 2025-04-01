@@ -6,9 +6,9 @@ import (
 
 	"errors"
 	"fmt"
-	"frapo/config"
-	dal "frapo/internal/dal"
-	model "frapo/models"
+	"frappuccino/config"
+	dal "frappuccino/internal/dal"
+	model "frappuccino/models"
 )
 
 type MenuService interface {

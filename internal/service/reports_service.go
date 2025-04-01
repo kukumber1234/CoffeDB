@@ -2,8 +2,8 @@ package service
 
 import (
 	"errors"
-	dal "frapo/internal/dal"
-	model "frapo/models"
+	dal "frappuccino/internal/dal"
+	model "frappuccino/models"
 	"strconv"
 )
 

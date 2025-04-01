@@ -2,7 +2,7 @@ package dal
 
 import (
 	"database/sql"
-	model "frapo/models"
+	model "frappuccino/models"
 	"strconv"
 
 	"github.com/lib/pq"

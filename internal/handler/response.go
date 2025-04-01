@@ -2,8 +2,8 @@ package handler
 
 import (
 	"encoding/json"
-	"frapo/config"
-	flag "frapo/models"
+	"frappuccino/config"
+	flag "frappuccino/models"
 	"net/http"
 )
 

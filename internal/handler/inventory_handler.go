@@ -2,9 +2,9 @@ package handler
 
 import (
 	"encoding/json"
-	"frapo/config"
-	"frapo/internal/service"
-	"frapo/models"
+	"frappuccino/config"
+	"frappuccino/internal/service"
+	"frappuccino/models"
 	"io"
 	"net/http"
 	"strconv"

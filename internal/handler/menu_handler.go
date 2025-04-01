@@ -2,11 +2,11 @@ package handler
 
 import (
 	"encoding/json"
-	"frapo/models"
+	"frappuccino/models"
 	"net/http"
 	"strconv"
 
-	"frapo/internal/service"
+	"frappuccino/internal/service"
 )
 
 type MenuHandler struct {

@@ -2,8 +2,8 @@ package handler
 
 import (
 	"encoding/json"
-	"frapo/internal/service"
-	"frapo/models"
+	"frappuccino/internal/service"
+	"frappuccino/models"
 	"net/http"
 	"strconv"
 )
