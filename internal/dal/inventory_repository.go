@@ -233,7 +233,7 @@ func (i *Inventory) AddTransaction(inventoryID int, quantity float64) error {
 	}()
 
 	query := `
-		INSERT INTO inventory_transaction (inventory_id, quantity)
+		INSERT INTO inventory_transactions (inventory_id, quantity)
 		VALUES ($1, $2) RETURNING transaction_id, transaction_date
 	`
 

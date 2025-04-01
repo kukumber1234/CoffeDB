@@ -83,7 +83,7 @@ func (h *Inventory) Update(w http.ResponseWriter, r *http.Request) {
 		SendResponse("Failed to decode body", err, http.StatusBadRequest, w)
 		return
 	}
-	id, err := strconv.Atoi(r.PathValue("{id}"))
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		SendResponse("Failed to convert id to int", err, http.StatusInternalServerError, w)
 		return
@@ -97,7 +97,7 @@ func (h *Inventory) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *Inventory) Delete(w http.ResponseWriter, r *http.Request) {
 	config.Logger.Info("Incoming Request Received", "Action", "Delete")
-	id, err := strconv.Atoi(r.PathValue("{id}"))
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		SendResponse("Failed to convert id to int", err, http.StatusInternalServerError, w)
 		return
