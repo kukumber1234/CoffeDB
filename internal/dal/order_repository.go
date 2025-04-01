@@ -14,7 +14,7 @@ type OrderRepository interface {
 	GetByID(id int) (model.OrderResponse, error)
 	// Update(order *model.Order) error
 	// Delete(id int) error
-	// UpdateStatus(id int, status string) error
+	UpdateStatus(id int, status string) error
 	NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOrderedItemsResponse, error)
 }
 
@@ -337,36 +337,36 @@ func (o *Order) NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOr
 // 	return nil
 // }
 
-// func (o *Order) UpdateStatus(id int, status string) error {
-// 	tx, err := o.db.Begin()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer func() {
-// 		if err != nil {
-// 			tx.Rollback()
-// 		}
-// 	}()
+func (o *Order) UpdateStatus(id int, status string) error {
+	tx, err := o.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
-// 	query := `
-// 		UPDATE order_status_history
-// 		WHERE order_id = $1
-// 		SET status = $2 and changed_at = $3
-// 	`
+	query := `
+		UPDATE order_status_history
+		SET status = $2, changed_at = $3
+		WHERE order_id = $1
+	`
 
-// 	if _, err = tx.Exec(query, id, status, time.Now()); err != nil {
-// 		return err
-// 	}
+	if _, err = tx.Exec(query, id, status, time.Now()); err != nil {
+		return err
+	}
 
-// 	query = `
-// 		UPDATE order
-// 		WHERE order_id = $1
-// 		SET status = $2
-// 	`
+	query = `
+		UPDATE orders
+		SET status = $2
+		WHERE order_id = $1
+	`
 
-// 	if _, err = tx.Exec(query, id, status); err != nil {
-// 		return err
-// 	}
+	if _, err = tx.Exec(query, id, status); err != nil {
+		return err
+	}
 
-// 	return tx.Commit()
-// }
+	return tx.Commit()
+}

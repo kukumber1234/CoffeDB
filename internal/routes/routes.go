@@ -42,9 +42,9 @@ func Routes(mux *http.ServeMux, db *sql.DB) {
 	mux.HandleFunc("POST /orders", orderHandler.Add)
 	mux.HandleFunc("GET /orders", orderHandler.Get)
 	mux.HandleFunc("GET /orders/{id}", orderHandler.GetByID)
-	// mux.HandleFunc("PUT /orders/{id}", ordersHandler.Update)
+	// mux.HandleFunc("PUT /orders/{id}", orderHandler.Update)
 	// mux.HandleFunc("DELETE /orders/{id}", orderHandler.Delete)
-	// mux.HandleFunc("POST /orders/{id}/close", ordersHandler.Close)
+	mux.HandleFunc("POST /orders/{id}/close", orderHandler.CloseOrder)
 	mux.HandleFunc("GET /orders/numberOfOrderedItems", orderHandler.NumberOfOrders)
 
 	// aggregations:

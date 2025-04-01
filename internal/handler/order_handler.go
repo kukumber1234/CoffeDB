@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"frappuccino/config"
 	"frappuccino/internal/service"
 	"frappuccino/models"
 	"net/http"
@@ -67,19 +68,19 @@ func (o *OrderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// func (o *OrderHandler) CloseOrder(w http.ResponseWriter, r *http.Request) {
-// 	config.Logger.Info("Incoming Request Received", "Action", "Update")
-// 	id, err := strconv.Atoi(r.PathValue("{id}"))
-// 	if err != nil {
-// 		SendResponse("Failed to convert id to int", err, http.StatusInternalServerError, w)
-// 		return
-// 	}
-// 	if err = o.OrderService.CloseOrder(id); err != nil {
-// 		SendResponse("Failed to close order", err, http.StatusInternalServerError, w)
-// 		return
-// 	}
-// 	SendResponse("Successfully updated order", nil, http.StatusOK, w)
-// }
+func (o *OrderHandler) CloseOrder(w http.ResponseWriter, r *http.Request) {
+	config.Logger.Info("Incoming Request Received", "Action", "Update")
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		SendResponse("Failed to convert id to int", err, http.StatusInternalServerError, w)
+		return
+	}
+	if err = o.OrderService.CloseOrder(id); err != nil {
+		SendResponse("Failed to close order", err, http.StatusInternalServerError, w)
+		return
+	}
+	SendResponse("Successfully updated order", nil, http.StatusOK, w)
+}
 
 // func (o *OrderHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // 	config.Logger.Info("Incoming Request Received", "Action", "Delete")
