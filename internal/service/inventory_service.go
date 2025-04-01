@@ -1,0 +1,82 @@
+package service
+
+import (
+	"errors"
+	"frapo/internal/dal"
+	"frapo/models"
+)
+
+type InventoryService interface {
+	Add(inventoryItem models.InventoryItem) error
+	Get() ([]models.InventoryItem, error)
+	GetByID(id int) (models.InventoryItem, error)
+	Update(id int, inventoryItem models.InventoryItem) error
+	Delete(id int) error
+	CountInventory(sortBy string, page, pageSize int) (models.CountInventory, error)
+}
+
+type Inventory struct {
+	repository dal.InventoryRepository
+}
+
+func NewInventoryService(inventory dal.InventoryRepository) *Inventory {
+	return &Inventory{repository: inventory}
+}
+
+func (s *Inventory) Add(inventoryItem models.InventoryItem) error {
+	if inventoryItem.Name == "" {
+		return errors.New("ingredient name can not be empty")
+	}
+
+	if inventoryItem.Unit == "" {
+		return errors.New("ingredient unit can not be empty")
+	}
+
+	if inventoryItem.StockLevel <= 0 {
+		return errors.New("ingredient quantity can not be lower or equal than 0")
+	}
+
+	if _, err := s.repository.Add(inventoryItem); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Inventory) Get() ([]models.InventoryItem, error) {
+	return s.repository.GetAll()
+}
+
+func (s *Inventory) GetByID(id int) (models.InventoryItem, error) {
+	return s.repository.GetByID(id)
+}
+
+func (s *Inventory) Update(id int, inventoryItem models.InventoryItem) error {
+	if id == 0 {
+		return errors.New("id can not be empty or zero")
+	}
+
+	if inventoryItem.Name == "" {
+		return errors.New("ingredient name can not be empty")
+	}
+
+	if inventoryItem.Unit == "" {
+		return errors.New("ingredient unit can not be empty")
+	}
+
+	if inventoryItem.StockLevel <= 0 {
+		return errors.New("ingredient quantity can not be lower or equal than 0")
+	}
+	return s.repository.Update(inventoryItem)
+}
+
+func (s *Inventory) Delete(id int) error {
+	if id == 0 {
+		return errors.New("id can not be empty or zero")
+	}
+
+	return s.repository.Delete(id)
+}
+
+func (s *Inventory) CountInventory(sortBy string, page, pageSize int) (models.CountInventory ,error) {
+	return s.repository.CountInventory(sortBy, page, pageSize)
+}
