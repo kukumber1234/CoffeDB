@@ -159,7 +159,7 @@ func (i *Inventory) CountInventory(sortBy string, page, pageSize int) (model.Cou
 		offset = 0
 	}
 
-	if sortBy != "name" && sortBy != "quantity" && sortBy != "price" {
+	if sortBy != "name" && sortBy != "quantity" {
 		sortBy = "name"
 	}
 
@@ -170,21 +170,14 @@ func (i *Inventory) CountInventory(sortBy string, page, pageSize int) (model.Cou
 	}
 
 	query := `
-		SELECT i.name, i.stock_level, 
-		       COALESCE((
-		           SELECT it.price FROM inventory_transactions it 
-		           WHERE it.inventory_id = i.inventory_id 
-		           ORDER BY it.transaction_date DESC 
-		           LIMIT 1
-		       ), 0) as price
-		FROM inventory i
+		SELECT name, stock_level
+		FROM inventory
 		ORDER BY 
-			CASE WHEN $1 = 'quantity' THEN i.stock_level END DESC,
-			CASE WHEN $1 = 'price' THEN 
-				(SELECT it.price FROM inventory_transactions it WHERE it.inventory_id = i.inventory_id ORDER BY it.transaction_date DESC LIMIT 1)
-			END DESC
+			CASE WHEN $1 = 'quantity' THEN stock_level ELSE NULL END DESC,
+			CASE WHEN $1 = 'name' THEN name ELSE NULL END
 		LIMIT $2 OFFSET $3
 	`
+
 
 	rows, err := i.db.Query(query, sortBy, pageSize, offset)
 	if err != nil {
@@ -197,13 +190,11 @@ func (i *Inventory) CountInventory(sortBy string, page, pageSize int) (model.Cou
 	for rows.Next() {
 		var item model.Data
 		var stockLevel float64
-		var price float64
 
-		if err := rows.Scan(&item.Name, &stockLevel, &price); err != nil {
+		if err := rows.Scan(&item.Name, &stockLevel); err != nil {
 			return model.CountInventory{}, err
 		}
 		item.Quantity = int(stockLevel)
-		item.Price = int(price)
 		items = append(items, item)
 	}
 

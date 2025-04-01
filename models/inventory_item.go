@@ -25,5 +25,4 @@ type CountInventory struct {
 type Data struct {
 	Name     string `json:"name"`
 	Quantity int    `json:"quantity"`
-	Price    int    `json:"price"`
 }
