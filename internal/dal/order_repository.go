@@ -13,7 +13,7 @@ type OrderRepository interface {
 	GetAll() ([]model.OrderResponse, error)
 	GetByID(id int) (model.OrderResponse, error)
 	// Update(order *model.Order) error
-	// Delete(id int) error
+	Delete(id int) error
 	UpdateStatus(id int, status string) error
 	NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOrderedItemsResponse, error)
 }
@@ -257,24 +257,24 @@ func (o *Order) GetByID(id int) (model.OrderResponse, error) {
 // 	return nil
 // }
 
-// func (o *Order) Delete(id int) error {
-// 	tx, err := o.db.Begin()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer func() {
-// 		if err != nil {
-// 			tx.Rollback()
-// 		}
-// 	}()
+func (o *Order) Delete(id int) error {
+	tx, err := o.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
 
-// 	query := `DELETE FROM orders WHERE order_id = $1`
-// 	if _, err = tx.Exec(query, id); err != nil {
-// 		return err
-// 	}
+	query := `DELETE FROM orders WHERE order_id = $1`
+	if _, err = tx.Exec(query, id); err != nil {
+		return err
+	}
 
-// 	return tx.Commit()
-// }
+	return tx.Commit()
+}
 
 func (o *Order) NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOrderedItemsResponse, error) {
 	query := `

@@ -82,20 +82,20 @@ func (o *OrderHandler) CloseOrder(w http.ResponseWriter, r *http.Request) {
 	SendResponse("Successfully updated order", nil, http.StatusOK, w)
 }
 
-// func (o *OrderHandler) Delete(w http.ResponseWriter, r *http.Request) {
-// 	config.Logger.Info("Incoming Request Received", "Action", "Delete")
-// 	id, err := strconv.Atoi(r.PathValue("{id}"))
-// 	if err != nil {
-// 		SendResponse("Failed to convert id to int", err, http.StatusInternalServerError, w)
-// 		return
-// 	}
+func (o *OrderHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	config.Logger.Info("Incoming Request Received", "Action", "Delete")
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		SendResponse("Failed to convert id to int", err, http.StatusInternalServerError, w)
+		return
+	}
 
-// 	if err := o.OrderService.Delete(id); err != nil {
-// 		SendResponse("Failed to delete item", err, http.StatusInternalServerError, w)
-// 		return
-// 	}
-// 	SendResponse("Successfully deleted order", nil, http.StatusOK, w)
-// }
+	if err := o.OrderService.Delete(id); err != nil {
+		SendResponse("Failed to delete item", err, http.StatusInternalServerError, w)
+		return
+	}
+	SendResponse("Successfully deleted order", nil, http.StatusOK, w)
+}
 
 func (o *OrderHandler) NumberOfOrders(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()

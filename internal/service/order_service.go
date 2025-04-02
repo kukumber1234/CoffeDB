@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"frappuccino/internal/dal"
 	model "frappuccino/models"
 )
@@ -11,7 +12,7 @@ type OrdersService interface {
 	GetByID(id int) (model.OrderResponse, error)
 	// Update(order model.Order) error
 	CloseOrder(id int) error
-	// Delete(id int) error
+	Delete(id int) error
 	NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOrderedItemsResponse, error)
 }
 
@@ -43,7 +44,16 @@ func (o *Order) CloseOrder(id int) error {
 	return o.repository.UpdateStatus(id, "closed")
 }
 
-// func (o *Order) Delete(id int) error { return o.repository.Delete(id) }
+func (o *Order) Delete(id int) error {
+	order, err := o.repository.GetByID(id)
+	if err != nil {
+		return err
+	}
+	if order.OrderID != id {
+		return errors.New("order ID not match")
+	}
+	return o.repository.Delete(id)
+}
 
 func (o *Order) NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOrderedItemsResponse, error) {
 	return o.repository.NumberOfOrders(startDate, endDate)
