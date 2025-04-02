@@ -35,7 +35,6 @@ CREATE TABLE inventory(
     inventory_id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
     stock_level DECIMAL(10,2) NOT NULL CHECK(stock_level>0),
-    unit_type VARCHAR(50) NOT NULL,
     last_updated TIMESTAMPTZ DEFAULT NOW(),
     reorder_level DECIMAL(10,2) NOT NULL CHECK(reorder_level>0)
 );
@@ -52,8 +51,7 @@ CREATE TABLE menu_item_ingredients(
 CREATE TABLE inventory_transactions(
     transaction_id SERIAL PRIMARY KEY,
     inventory_id INT REFERENCES inventory(inventory_id) ON DELETE CASCADE,
-    price DECIMAL(10,2) NOT NULL CHECK(price>0),
-    quantity DECIMAL(10,2) NOT NULL CHECK(quantity>0),
+    quantity DECIMAL(10,2) CHECK(quantity>=0),
     transaction_date TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -120,17 +118,17 @@ INSERT INTO menu_items (name, description, price, tags) VALUES
 ('Sandwich', 'Club sandwich', 7.99, ARRAY['bread', 'snack']);
 
 -- Вставка данных в inventory
-INSERT INTO inventory (name, stock_level, unit_type, reorder_level) VALUES
-('Cheese', 100, 'kg', 10),
-('Beef', 50, 'kg', 5),
-('Pasta', 200, 'kg', 20),
-('Lettuce', 80, 'kg', 8),
-('Salmon', 60, 'kg', 6),
-('Steak Meat', 40, 'kg', 4),
-('Chicken', 70, 'kg', 7),
-('Potatoes', 150, 'kg', 15),
-('Milk', 90, 'liters', 9),
-('Bread', 120, 'loaves', 12);
+INSERT INTO inventory (name, stock_level, reorder_level) VALUES
+('Cheese', 100,  10),
+('Beef', 50,  5),
+('Pasta', 200, 20),
+('Lettuce', 80, 8),
+('Salmon', 60,  6),
+('Steak Meat', 40, 4),
+('Chicken', 70,  7),
+('Potatoes', 150, 15),
+('Milk', 90, 9),
+('Bread', 120, 12);
 
 -- Вставка данных в menu_item_ingredients
 INSERT INTO menu_item_ingredients (menu_item_id, inventory_id, quantity) VALUES
@@ -180,17 +178,17 @@ INSERT INTO order_items (menu_item_id, order_id, customizations, price_at_order_
 (10, 10, '{"no_mayo": true}', 7.99, 10);
 
 -- Вставка данных в inventory_transactions
-INSERT INTO inventory_transactions (inventory_id, price, quantity, transaction_date) VALUES
-(1, 5.99, 10, NOW()),
-(2, 8.99, 5, NOW()),
-(3, 3.99, 20, NOW()),
-(4, 2.99, 15, NOW()),
-(5, 12.99, 8, NOW()),
-(6, 15.99, 4, NOW()),
-(7, 6.99, 10, NOW()),
-(8, 1.99, 25, NOW()),
-(9, 2.49, 30, NOW()),
-(10, 1.99, 20, NOW());
+INSERT INTO inventory_transactions (inventory_id, quantity, transaction_date) VALUES
+(1, 10,NOW()),
+(2, 5, NOW()),
+(3, 20,NOW()),
+(4, 15,NOW()),
+(5, 8, NOW()),
+(6, 4, NOW()),
+(7, 10,NOW()),
+(8, 25,NOW()),
+(9, 30,NOW()),
+(10,20,NOW());
 
 -- Вставка данных в order_status_history
 INSERT INTO order_status_history (order_id, status, changed_at) VALUES

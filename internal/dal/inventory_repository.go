@@ -37,12 +37,13 @@ func (i *Inventory) Add(inventoryItem model.InventoryItem) (model.InventoryItem,
 	}()
 
 	query := `
-		INSERT INTO inventory (name, quantity, unit)
-		VALUES ($1, $2, $3) RETURNING inventory_item_id
+		INSERT INTO inventory (name, stock_level, reorder_level)
+		VALUES ($1, $2, $3) RETURNING inventory_id, last_updated
 	`
 
 	var inventoryItemID int
-	if err = tx.QueryRow(query, inventoryItem.Name, inventoryItem.StockLevel, inventoryItem.Unit).Scan(&inventoryItemID); err != nil {
+	var lastUpdated time.Time
+	if err = tx.QueryRow(query, inventoryItem.Name, *inventoryItem.StockLevel, inventoryItem.ReorderLevel).Scan(&inventoryItemID, &lastUpdated); err != nil {
 		return model.InventoryItem{}, err
 	}
 
@@ -50,9 +51,10 @@ func (i *Inventory) Add(inventoryItem model.InventoryItem) (model.InventoryItem,
 		return model.InventoryItem{}, err
 	}
 
-	inventoryItem.IngredientID = inventoryItemID
+	inventoryItem.IngredientID = &inventoryItemID
+	inventoryItem.LastUpdated = lastUpdated
 
-	if err := i.AddTransaction(inventoryItemID, inventoryItem.StockLevel); err != nil {
+	if err := i.AddTransaction(inventoryItemID, *inventoryItem.StockLevel); err != nil {
 		return model.InventoryItem{}, err
 	}
 	return inventoryItem, nil
@@ -60,7 +62,7 @@ func (i *Inventory) Add(inventoryItem model.InventoryItem) (model.InventoryItem,
 
 func (i *Inventory) GetAll() ([]model.InventoryItem, error) {
 	query := `
-		SELECT inventory_id, name, stock_level, unit_type
+		SELECT inventory_id, name, stock_level, reorder_level
 		FROM inventory
 	`
 
@@ -73,7 +75,7 @@ func (i *Inventory) GetAll() ([]model.InventoryItem, error) {
 	var inventoryItems []model.InventoryItem
 	for rows.Next() {
 		inventoryItem := model.InventoryItem{}
-		if err := rows.Scan(&inventoryItem.IngredientID, &inventoryItem.Name, &inventoryItem.StockLevel, &inventoryItem.Unit); err != nil {
+		if err := rows.Scan(&inventoryItem.IngredientID, &inventoryItem.Name, &inventoryItem.StockLevel, &inventoryItem.ReorderLevel); err != nil {
 			return nil, err
 		}
 		inventoryItems = append(inventoryItems, inventoryItem)
@@ -83,14 +85,14 @@ func (i *Inventory) GetAll() ([]model.InventoryItem, error) {
 
 func (i *Inventory) GetByID(id int) (model.InventoryItem, error) {
 	query := `
-		SELECT inventory_id, name, stock_level, unit_type
+		SELECT inventory_id, name, stock_level, reorder_level
 		FROM inventory
 		WHERE inventory_id = $1
 	`
 	row := i.db.QueryRow(query, id)
 
 	inventoryItem := model.InventoryItem{}
-	err := row.Scan(&inventoryItem.IngredientID, &inventoryItem.Name, &inventoryItem.StockLevel, &inventoryItem.Unit)
+	err := row.Scan(&inventoryItem.IngredientID, &inventoryItem.Name, &inventoryItem.StockLevel, &inventoryItem.ReorderLevel)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return model.InventoryItem{}, errors.New("inventory item not found")
@@ -108,17 +110,28 @@ func (i *Inventory) Update(inventoryItem model.InventoryItem) error {
 	}
 	defer func() {
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 		}
 	}()
 
+	ingredient, err := i.GetByID(*inventoryItem.IngredientID)
+	if inventoryItem.StockLevel == nil {
+		inventoryItem.StockLevel = ingredient.StockLevel
+	}
+	if inventoryItem.Name == "" {
+		inventoryItem.Name = ingredient.Name
+	}
+	if inventoryItem.ReorderLevel == nil {
+		inventoryItem.ReorderLevel = ingredient.ReorderLevel
+	}
+
 	query := `
 		UPDATE inventory
-		SET name = $1, stock_level = $2, unit_type = $3
+		SET name = $1, stock_level = $2, reorder_level = $3
 		WHERE inventory_id = $4
 	`
 
-	if _, err = tx.Exec(query, inventoryItem.Name, inventoryItem.StockLevel, inventoryItem.Unit, inventoryItem.IngredientID); err != nil {
+	if _, err = tx.Exec(query, inventoryItem.Name, inventoryItem.StockLevel, inventoryItem.ReorderLevel, inventoryItem.IngredientID); err != nil {
 		return err
 	}
 
@@ -126,8 +139,10 @@ func (i *Inventory) Update(inventoryItem model.InventoryItem) error {
 		return err
 	}
 
-	if err := i.AddTransaction(inventoryItem.IngredientID, inventoryItem.StockLevel); err != nil {
-		return err
+	if inventoryItem.StockLevel != nil {
+		if err := i.AddTransaction(*inventoryItem.IngredientID, *inventoryItem.StockLevel); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -144,10 +159,6 @@ func (i *Inventory) Delete(id int) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	if err := i.AddTransaction(id, 0); err != nil {
 		return err
 	}
 	return nil
@@ -177,7 +188,6 @@ func (i *Inventory) CountInventory(sortBy string, page, pageSize int) (model.Cou
 			CASE WHEN $1 = 'name' THEN name ELSE NULL END
 		LIMIT $2 OFFSET $3
 	`
-
 
 	rows, err := i.db.Query(query, sortBy, pageSize, offset)
 	if err != nil {

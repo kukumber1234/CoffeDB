@@ -3,11 +3,11 @@ package models
 import "time"
 
 type InventoryItem struct {
-	IngredientID int       `json:"ingredient_id"`
+	IngredientID *int      `json:"inventory_id"`
 	Name         string    `json:"name"`
-	StockLevel   float64   `json:"stock_level"`
-	Unit         string    `json:"unit"`
+	StockLevel   *float64  `json:"stock_level"`
 	LastUpdated  time.Time `json:"last_updated"`
+	ReorderLevel *float64  `json:"reorder_level"`
 }
 
 type InventoryMenuRequest struct {
