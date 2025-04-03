@@ -83,7 +83,6 @@ func (m *MenuHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	SendResponse("Menu updated successfully", nil, http.StatusCreated, w)
 }
 
@@ -98,5 +97,5 @@ func (m *MenuHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		SendResponse("MenuHandler item not found", err, http.StatusNotFound, w)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	SendResponse("Menu updated successfully", nil, http.StatusNoContent, w)
 }

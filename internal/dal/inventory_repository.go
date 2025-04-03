@@ -63,7 +63,7 @@ func (i *Inventory) Add(inventoryItem model.InventoryItem) (model.InventoryItem,
 
 func (i *Inventory) GetAll() ([]model.InventoryItem, error) {
 	query := `
-		SELECT inventory_id, name, stock_level, reorder_level
+		SELECT inventory_id, name, stock_level, reorder_level, last_updated
 		FROM inventory
 	`
 
@@ -76,9 +76,21 @@ func (i *Inventory) GetAll() ([]model.InventoryItem, error) {
 	var inventoryItems []model.InventoryItem
 	for rows.Next() {
 		inventoryItem := model.InventoryItem{}
-		if err := rows.Scan(&inventoryItem.IngredientID, &inventoryItem.Name, &inventoryItem.StockLevel, &inventoryItem.ReorderLevel); err != nil {
+		var id int
+		var stock float64
+		var lastUpdated time.Time
+
+		if err := rows.Scan(&id, &inventoryItem.Name, &stock, &inventoryItem.ReorderLevel, &lastUpdated); err != nil {
 			return nil, err
 		}
+
+		loc, _ := time.LoadLocation("Asia/Almaty")
+		lastUpdated = lastUpdated.In(loc)
+
+		inventoryItem.IngredientID = &id
+		inventoryItem.StockLevel = &stock
+		inventoryItem.LastUpdated = lastUpdated
+
 		inventoryItems = append(inventoryItems, inventoryItem)
 	}
 	return inventoryItems, nil
@@ -86,20 +98,31 @@ func (i *Inventory) GetAll() ([]model.InventoryItem, error) {
 
 func (i *Inventory) GetByID(id int) (model.InventoryItem, error) {
 	query := `
-		SELECT inventory_id, name, stock_level, reorder_level
+		SELECT inventory_id, name, stock_level, reorder_level, last_updated
 		FROM inventory
 		WHERE inventory_id = $1
 	`
 	row := i.db.QueryRow(query, id)
 
 	inventoryItem := model.InventoryItem{}
-	err := row.Scan(&inventoryItem.IngredientID, &inventoryItem.Name, &inventoryItem.StockLevel, &inventoryItem.ReorderLevel)
+	var invID int
+	var stock float64
+	var lastUpdated time.Time
+
+	err := row.Scan(&invID, &inventoryItem.Name, &stock, &inventoryItem.ReorderLevel, &lastUpdated)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return model.InventoryItem{}, errors.New("inventory item not found")
 		}
 		return model.InventoryItem{}, err
 	}
+
+	loc, _ := time.LoadLocation("Asia/Almaty")
+	lastUpdated = lastUpdated.In(loc)
+
+	inventoryItem.IngredientID = &invID
+	inventoryItem.StockLevel = &stock
+	inventoryItem.LastUpdated = lastUpdated
 
 	return inventoryItem, nil
 }

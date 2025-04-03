@@ -32,8 +32,6 @@ func (h *Inventory) Add(w http.ResponseWriter, r *http.Request) {
 		SendResponse("Failed to add a new item to the inventory", err, http.StatusBadRequest, w)
 		return
 	}
-
-	SendResponse("Added new item to the inventory", nil, http.StatusCreated, w)
 }
 
 func (h *Inventory) Get(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +46,6 @@ func (h *Inventory) Get(w http.ResponseWriter, r *http.Request) {
 		SendResponse("Failed to encode inventory", err, http.StatusInternalServerError, w)
 		return
 	}
-	SendResponse("Successfully retrieved inventory", nil, http.StatusOK, w)
 }
 
 func (h *Inventory) GetByID(w http.ResponseWriter, r *http.Request) {
