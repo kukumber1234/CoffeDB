@@ -2,9 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"frappuccino/internal/service"
 	"net/http"
 	"strings"
+
+	"frappuccino/internal/service"
 )
 
 type ReportsHandler struct {

@@ -58,3 +58,45 @@ type OrderItemShort struct {
 }
 
 type NumberOfOrderedItemsResponse map[string]int
+
+type BatchOrderRequest struct {
+	Orders []OrderRequestBatch `json:"orders"`
+}
+
+type OrderRequestBatch struct {
+	CustomerName string                  `json:"customer_name"`
+	Items        []OrderItemRequestBatch `json:"items"`
+}
+
+type OrderItemRequestBatch struct {
+	MenuItemName string `json:"product_name"`
+	Quantity     int    `json:"quantity"`
+}
+
+type ProcessedOrder struct {
+	OrderID      int     `json:"order_id,omitempty"`
+	CustomerName string  `json:"customer_name"`
+	Status       string  `json:"status"`
+	Total        float64 `json:"total,omitempty"`
+	Reason       string  `json:"reason,omitempty"`
+}
+
+type InventoryUpdate struct {
+	IngredientID int     `json:"ingredient_id"`
+	Name         string  `json:"name"`
+	QuantityUsed float64 `json:"quantity_used"`
+	Remaining    float64 `json:"remaining"`
+}
+
+type BatchSummary struct {
+	TotalOrders      int               `json:"total_orders"`
+	Accepted         int               `json:"accepted"`
+	Rejected         int               `json:"rejected"`
+	TotalRevenue     float64           `json:"total_revenue"`
+	InventoryUpdates []InventoryUpdate `json:"inventory_updates"`
+}
+
+type BatchOrderResponse struct {
+	ProcessedOrders []ProcessedOrder `json:"processed_orders"`
+	Summary         BatchSummary     `json:"summary"`
+}

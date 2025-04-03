@@ -2,15 +2,14 @@ package routes
 
 import (
 	"database/sql"
+	"net/http"
 
 	"frappuccino/internal/dal"
 	"frappuccino/internal/handler"
 	"frappuccino/internal/service"
-	"net/http"
 )
 
 func Routes(mux *http.ServeMux, db *sql.DB) {
-
 	// menu items:
 	menuDal := dal.NewMenuRepo(db)
 	menuService := service.NewFileMenuService(menuDal)
@@ -46,6 +45,7 @@ func Routes(mux *http.ServeMux, db *sql.DB) {
 	mux.HandleFunc("DELETE /orders/{id}", orderHandler.Delete)
 	mux.HandleFunc("POST /orders/{id}/close", orderHandler.CloseOrder)
 	mux.HandleFunc("GET /orders/numberOfOrderedItems", orderHandler.NumberOfOrders)
+	mux.HandleFunc("POST /orders/batch-process", orderHandler.BulkOrderProcessing)
 
 	// aggregations:
 	reportsDal := dal.NewReportsRepo(db)

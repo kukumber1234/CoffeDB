@@ -3,8 +3,9 @@ package dal
 import (
 	"database/sql"
 	"errors"
-	model "frappuccino/models"
 	"time"
+
+	model "frappuccino/models"
 )
 
 type InventoryRepository interface {

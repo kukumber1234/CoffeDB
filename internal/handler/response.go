@@ -2,9 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"frappuccino/config"
 	flag "frappuccino/models"
-	"net/http"
 )
 
 func SendResponse(message string, err error, status int, w http.ResponseWriter) {

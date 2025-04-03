@@ -34,9 +34,9 @@ CREATE TABLE order_items(
 CREATE TABLE inventory(
     inventory_id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
-    stock_level DECIMAL(10,2) NOT NULL CHECK(stock_level>0),
+    stock_level DECIMAL(10,2) NOT NULL CHECK(stock_level>=0),
     last_updated TIMESTAMPTZ DEFAULT NOW(),
-    reorder_level DECIMAL(10,2) NOT NULL CHECK(reorder_level>0)
+    reorder_level DECIMAL(10,2) NOT NULL CHECK(reorder_level>=0)
 );
 
 -- Таблица menu_item_ingredients

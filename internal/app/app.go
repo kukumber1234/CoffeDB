@@ -2,11 +2,12 @@ package app
 
 import (
 	"flag"
+	"log"
+	"net/http"
+
 	"frappuccino/config"
 	"frappuccino/internal/dal"
 	"frappuccino/internal/routes"
-	"log"
-	"net/http"
 )
 
 func Start() {

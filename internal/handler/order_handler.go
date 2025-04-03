@@ -2,11 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"net/http"
+	"strconv"
+
 	"frappuccino/config"
 	"frappuccino/internal/service"
 	"frappuccino/models"
-	"net/http"
-	"strconv"
 )
 
 type OrderHandler struct {
@@ -25,7 +26,7 @@ func (o *OrderHandler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orderID, err := o.OrderService.Add(orderRequest.CustomerName, orderRequest.Orders)
+	orderID, _, err := o.OrderService.Add(orderRequest.CustomerName, orderRequest.Orders)
 	if err != nil {
 		SendResponse("Failed to add order", err, http.StatusInternalServerError, w)
 		return
@@ -133,6 +134,27 @@ func (o *OrderHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SendResponse("Successfully updated order", nil, http.StatusOK, w)
+}
+
+func (o *OrderHandler) BulkOrderProcessing(w http.ResponseWriter, r *http.Request) {
+	var request models.BatchOrderRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		SendResponse("Failed to decode order", err, http.StatusInternalServerError, w)
+		return
+	}
+
+	req, err := o.OrderService.BatchProcessOrders(request)
+	if err != nil {
+		SendResponse("Failed bulk order", err, http.StatusInternalServerError, w)
+		return
+	}
+
+	w.Header().Set("Content-type", "application/json")
+	if err := json.NewEncoder(w).Encode(req); err != nil {
+		SendResponse("Failed get bulk order", err, http.StatusInternalServerError, w)
+		return
+	}
 }
 
 func StringOrNil(s string) interface{} {

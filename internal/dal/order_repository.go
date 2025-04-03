@@ -3,19 +3,23 @@ package dal
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
-	model "frappuccino/models"
+	"strings"
 	"time"
+
+	model "frappuccino/models"
 )
 
 type OrderRepository interface {
-	Add(name string, itemReq []model.OrderItemRequest) (int, error)
+	Add(name string, itemReq []model.OrderItemRequest) (int, []model.InventoryUpdate, error)
 	GetAll() ([]model.OrderResponse, error)
 	GetByID(id int) (model.OrderResponse, error)
 	Update(name string, id int, itemReq []model.OrderItemRequest) error
 	Delete(id int) error
 	UpdateStatus(id int, status string) error
 	NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOrderedItemsResponse, error)
+	GetPriceMap(names []string) (map[string]float64, error)
 }
 
 type Order struct {
@@ -26,10 +30,15 @@ func NewOrderRepo(db *sql.DB) *Order {
 	return &Order{db: db}
 }
 
-func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) {
+var (
+	ErrNotEnoughStock   = errors.New("insufficient_inventory")
+	ErrMenuItemNotFound = errors.New("menu_item_not_found")
+)
+
+func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, []model.InventoryUpdate, error) {
 	tx, err := o.db.Begin()
 	if err != nil {
-		return 0, err
+		return 0, []model.InventoryUpdate{}, err
 	}
 	defer func() {
 		if err != nil {
@@ -49,7 +58,10 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 			FROM menu_items 
 			WHERE name = $1
 		`, item.MenuItemID).Scan(&price); err != nil {
-			return 0, err
+			if errors.Is(err, sql.ErrNoRows) {
+				return 0, []model.InventoryUpdate{}, fmt.Errorf("%w: menu item '%s' not found", ErrMenuItemNotFound, item.MenuItemID)
+			}
+			return 0, []model.InventoryUpdate{}, err
 		}
 		totalAmount += price * float64(item.Quantity)
 
@@ -60,14 +72,14 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 			WHERE menu_items.name = $1
 		`, item.MenuItemID)
 		if err != nil {
-			return 0, err
+			return 0, []model.InventoryUpdate{}, err
 		}
 
 		for rows.Next() {
 			var inventoryID int
 			var quantityPerPortion float64
 			if err := rows.Scan(&inventoryID, &quantityPerPortion); err != nil {
-				return 0, err
+				return 0, []model.InventoryUpdate{}, err
 			}
 			ingredientNeeds[inventoryID] += quantityPerPortion * float64(item.Quantity)
 		}
@@ -81,10 +93,10 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 			FROM inventory 
 			WHERE inventory_id = $1
 		`, inventoryID).Scan(&currentStock); err != nil {
-			return 0, err
+			return 0, []model.InventoryUpdate{}, err
 		}
 		if currentStock < neededQty {
-			return 0, fmt.Errorf("not enough stock for ingredient %d: need %.2f, have %.2f", inventoryID, neededQty, currentStock)
+			return 0, []model.InventoryUpdate{}, fmt.Errorf("%w: not enough stock for ingredient %d: need %.2f, have %.2f", ErrNotEnoughStock, inventoryID, neededQty, currentStock)
 		}
 	}
 
@@ -95,7 +107,7 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 			WHERE inventory_id = $2
 		`, usedQty, inventoryID)
 		if err != nil {
-			return 0, err
+			return 0, []model.InventoryUpdate{}, err
 		}
 	}
 
@@ -106,7 +118,7 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 				RETURNING order_id
 			`, name, totalAmount).Scan(&orderID)
 	if err != nil {
-		return 0, err
+		return 0, []model.InventoryUpdate{}, err
 	}
 
 	for _, item := range itemReq {
@@ -117,7 +129,7 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 			WHERE name = $1
 		`, item.MenuItemID).Scan(&price)
 		if err != nil {
-			return 0, err
+			return 0, []model.InventoryUpdate{}, err
 		}
 
 		var menuItemId int
@@ -127,7 +139,7 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 			WHERE name = $1
 		`, item.MenuItemID).Scan(&menuItemId)
 		if err != nil {
-			return 0, err
+			return 0, []model.InventoryUpdate{}, err
 		}
 
 		_, err = tx.Exec(`
@@ -135,7 +147,7 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 			VALUES($1, $2, '{}', $3, $4)
 		`, menuItemId, orderID, price, item.Quantity)
 		if err != nil {
-			return 0, err
+			return 0, []model.InventoryUpdate{}, err
 		}
 	}
 
@@ -144,10 +156,31 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 		VALUES($1, 'active')
 	`, orderID)
 	if err != nil {
-		return 0, err
+		return 0, []model.InventoryUpdate{}, err
 	}
 
-	return orderID, nil
+	var updates []model.InventoryUpdate
+	for inventoryID, usedQty := range ingredientNeeds {
+		_, err := tx.Exec(`UPDATE inventory SET stock_level = stock_level - $1 WHERE inventory_id = $2`, usedQty, inventoryID)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		var name string
+		var remaining float64
+		if err := tx.QueryRow(`SELECT name, stock_level FROM inventory WHERE inventory_id = $1`, inventoryID).Scan(&name, &remaining); err != nil {
+			return 0, nil, err
+		}
+
+		updates = append(updates, model.InventoryUpdate{
+			IngredientID: inventoryID,
+			Name:         name,
+			QuantityUsed: usedQty,
+			Remaining:    remaining,
+		})
+	}
+
+	return orderID, updates, nil
 }
 
 func (o *Order) GetAll() ([]model.OrderResponse, error) {
@@ -359,7 +392,7 @@ func (o *Order) Update(name string, id int, itemReq []model.OrderItemRequest) er
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -448,4 +481,38 @@ func (o *Order) UpdateStatus(id int, status string) error {
 	}
 
 	return tx.Commit()
+}
+
+func (o *Order) GetPriceMap(names []string) (map[string]float64, error) {
+	placeholders := make([]string, len(names))
+	args := make([]interface{}, len(names))
+
+	for i, name := range names {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = name
+	}
+
+	query := fmt.Sprintf(`
+		SELECT name, price
+		FROM menu_items
+		WHERE name IN (%s)
+	`, strings.Join(placeholders, ","))
+
+	rows, err := o.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	priceMap := make(map[string]float64)
+	for rows.Next() {
+		var name string
+		var price float64
+		if err := rows.Scan(&name, &price); err != nil {
+			return nil, err
+		}
+		priceMap[name] = price
+	}
+
+	return priceMap, nil
 }

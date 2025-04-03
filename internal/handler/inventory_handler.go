@@ -2,12 +2,13 @@ package handler
 
 import (
 	"encoding/json"
-	"frappuccino/config"
-	"frappuccino/internal/service"
-	"frappuccino/models"
 	"io"
 	"net/http"
 	"strconv"
+
+	"frappuccino/config"
+	"frappuccino/internal/service"
+	"frappuccino/models"
 )
 
 type Inventory struct {

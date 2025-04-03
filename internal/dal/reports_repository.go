@@ -2,8 +2,9 @@ package dal
 
 import (
 	"database/sql"
-	model "frappuccino/models"
 	"strconv"
+
+	model "frappuccino/models"
 
 	"github.com/lib/pq"
 )
@@ -205,9 +206,9 @@ func (f *ReportsData) OrderedItemsByPeriodMonth(year int) (model.ItemByPeriodYea
 		})
 	}
 
-	itemByPeriodYear := model.ItemByPeriodYear {
-		Period: "month",
-		Year: strconv.Itoa(year),
+	itemByPeriodYear := model.ItemByPeriodYear{
+		Period:       "month",
+		Year:         strconv.Itoa(year),
 		OrderedItems: orderedItems,
 	}
 

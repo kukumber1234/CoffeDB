@@ -35,7 +35,7 @@ func Create() {
 			fmt.Println("Error opening report.log:", err)
 			return
 		}
-		
+
 		config.Logger = slog.New(slog.NewTextHandler(file, nil))
 
 		fmt.Println("Logger initialized successfully!")
