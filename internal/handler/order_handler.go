@@ -115,41 +115,25 @@ func (o *OrderHandler) NumberOfOrders(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// func (o *OrderHandler) Update(w http.ResponseWriter, r *http.Request) {
-// 	var updatedItem model.Order
-// 	body, err := io.ReadAll(r.Body)
-// 	if err != nil {
-// 		SendResponse("Error reading request body", http.StatusBadRequest, w)
-// 		return
-// 	}
-// 	if err := json.Unmarshal(body, &updatedItem); err != nil {
-// 		SendResponse("Invalid JSON", http.StatusBadRequest, w)
-// 		return
-// 	}
-// 	path := strings.Split(r.URL.Path, "/")
-// 	if len(path) < 3 {
-// 		SendResponse("Invalid request path", http.StatusBadRequest, w)
-// 		return
-// 	}
-// 	if err := o.service.Update(path[2], updatedItem); err != nil {
-// 		SendResponse("Order item not found", http.StatusNotFound, w)
-// 		return
-// 	}
-// 	w.Header().Set("Content-type", "application/json")
-// }
+func (o *OrderHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		SendResponse("Failed to convert id to int", err, http.StatusInternalServerError, w)
+		return
+	}
+	var orderRequest models.OrderRequest
 
-// func (o *OrderHandler) Close(w http.ResponseWriter, r *http.Request) {
-// 	path := strings.Split(r.URL.Path, "/")
-// 	if len(path) < 3 {
-// 		SendResponse("Invalid request path", http.StatusBadRequest, w)
-// 		return
-// 	}
-// 	err := o.service.Close(path[2])
-// 	if err != nil {
-// 		SendResponse("Order item not found", http.StatusNotFound, w)
-// 		return
-// 	}
-// }
+	if err := json.NewDecoder(r.Body).Decode(&orderRequest); err != nil {
+		SendResponse("Failed to decode order", err, http.StatusInternalServerError, w)
+		return
+	}
+
+	if err := o.OrderService.Update(orderRequest.CustomerName, id, orderRequest.Orders); err != nil {
+		SendResponse("Failed to update order", err, http.StatusInternalServerError, w)
+		return
+	}
+	SendResponse("Successfully updated order", nil, http.StatusOK, w)
+}
 
 func StringOrNil(s string) interface{} {
 	if s == "" {

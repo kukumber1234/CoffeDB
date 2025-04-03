@@ -12,7 +12,7 @@ type OrderRepository interface {
 	Add(name string, itemReq []model.OrderItemRequest) (int, error)
 	GetAll() ([]model.OrderResponse, error)
 	GetByID(id int) (model.OrderResponse, error)
-	// Update(order *model.Order) error
+	Update(name string, id int, itemReq []model.OrderItemRequest) error
 	Delete(id int) error
 	UpdateStatus(id int, status string) error
 	NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOrderedItemsResponse, error)
@@ -44,8 +44,11 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 
 	for _, item := range itemReq {
 		var price float64
-		if err := tx.QueryRow(`SELECT price FROM menu_items WHERE name = $1`, item.MenuItemID).Scan(&price); err != nil {
-			fmt.Println("HERE 1")
+		if err := tx.QueryRow(`
+			SELECT price 
+			FROM menu_items 
+			WHERE name = $1
+		`, item.MenuItemID).Scan(&price); err != nil {
 			return 0, err
 		}
 		totalAmount += price * float64(item.Quantity)
@@ -73,7 +76,11 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 
 	for inventoryID, neededQty := range ingredientNeeds {
 		var currentStock float64
-		if err := tx.QueryRow(`SELECT stock_level FROM inventory WHERE inventory_id = $1`, inventoryID).Scan(&currentStock); err != nil {
+		if err := tx.QueryRow(`
+			SELECT stock_level 
+			FROM inventory 
+			WHERE inventory_id = $1
+		`, inventoryID).Scan(&currentStock); err != nil {
 			return 0, err
 		}
 		if currentStock < neededQty {
@@ -82,7 +89,11 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 	}
 
 	for inventoryID, usedQty := range ingredientNeeds {
-		_, err := tx.Exec(`UPDATE inventory SET stock_level = stock_level - $1 WHERE inventory_id = $2`, usedQty, inventoryID)
+		_, err := tx.Exec(`
+			UPDATE inventory 
+			SET stock_level = stock_level - $1 
+			WHERE inventory_id = $2
+		`, usedQty, inventoryID)
 		if err != nil {
 			return 0, err
 		}
@@ -95,41 +106,44 @@ func (o *Order) Add(name string, itemReq []model.OrderItemRequest) (int, error) 
 				RETURNING order_id
 			`, name, totalAmount).Scan(&orderID)
 	if err != nil {
-		fmt.Println("HERE 2")
 		return 0, err
 	}
 
 	for _, item := range itemReq {
 		var price float64
-		err := tx.QueryRow(`SELECT price FROM menu_items WHERE name = $1`, item.MenuItemID).Scan(&price)
+		err := tx.QueryRow(`
+			SELECT price 
+			FROM menu_items 
+			WHERE name = $1
+		`, item.MenuItemID).Scan(&price)
 		if err != nil {
-			fmt.Println("HERE 3", err)
 			return 0, err
 		}
 
 		var menuItemId int
-		err = tx.QueryRow(`SELECT menu_item_id FROM menu_items WHERE name = $1`, item.MenuItemID).Scan(&menuItemId)
+		err = tx.QueryRow(`
+			SELECT menu_item_id 
+			FROM menu_items 
+			WHERE name = $1
+		`, item.MenuItemID).Scan(&menuItemId)
 		if err != nil {
-			fmt.Println("HERE 4")
 			return 0, err
 		}
 
 		_, err = tx.Exec(`
-		INSERT INTO order_items (menu_item_id, order_id, customizations, price_at_order_time, quantity)
-		VALUES($1, $2, '{}', $3, $4)
+			INSERT INTO order_items (menu_item_id, order_id, customizations, price_at_order_time, quantity)
+			VALUES($1, $2, '{}', $3, $4)
 		`, menuItemId, orderID, price, item.Quantity)
 		if err != nil {
-			fmt.Println("HERE 5")
 			return 0, err
 		}
 	}
 
 	_, err = tx.Exec(`
-	INSERT INTO order_status_history (order_id, status)
-	VALUES($1, 'active')
+		INSERT INTO order_status_history (order_id, status)
+		VALUES($1, 'active')
 	`, orderID)
 	if err != nil {
-		fmt.Println("HERE 6")
 		return 0, err
 	}
 
@@ -203,9 +217,13 @@ func (o *Order) GetByID(id int) (model.OrderResponse, error) {
 	if err != nil {
 		return model.OrderResponse{}, err
 	}
+	defer rows.Close()
 
 	var order model.OrderResponse
+	var found bool
+
 	for rows.Next() {
+		found = true
 		var itemsRow []byte
 		if err := rows.Scan(&order.OrderID, &order.CustomerName, &order.Status, &order.CreatedAt, &itemsRow); err != nil {
 			return model.OrderResponse{}, err
@@ -218,44 +236,132 @@ func (o *Order) GetByID(id int) (model.OrderResponse, error) {
 			return model.OrderResponse{}, err
 		}
 	}
+
+	if !found {
+		return model.OrderResponse{}, fmt.Errorf("order with id %d not found", id)
+	}
+
 	return order, nil
 }
 
-// func (o *Order) Update(order *model.Order) error {
-// 	tx, err := o.db.Begin()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer func() {
-// 		if err != nil {
-// 			tx.Rollback()
-// 		}
-// 	}()
+func (o *Order) Update(name string, id int, itemReq []model.OrderItemRequest) error {
+	tx, err := o.db.Begin()
+	if err != nil {
+		return err
+	}
 
-// 	query := `
-// 		UPDATE orders
-// 		WHERE order_id = $1
-//   		SET customer_name = $2 and order_date = $3 and status = $4
-// 		    and total_amount = $5 and special_instruction = $6
-// 	`
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
 
-// 	_, err = tx.Exec(query, order.OrderID, order.CustomerName, order.OrderDate,
-// 		order.Status, order.TotalPrice, order.SpecialInstruction)
+	ingredientNeeds := make(map[int]float64)
+	totalAmount := 0.0
 
-// 	if err != nil {
-// 		return err
-// 	}
+	for _, item := range itemReq {
+		var price float64
+		if err := tx.QueryRow(`SELECT price FROM menu_items WHERE name = $1`, item.MenuItemID).Scan(&price); err != nil {
+			return err
+		}
+		totalAmount += price * float64(item.Quantity)
 
-// 	if err = tx.Commit(); err != nil {
-// 		return err
-// 	}
+		rows, err := tx.Query(`
+			SELECT inventory_id, quantity
+			FROM menu_item_ingredients
+			JOIN menu_items ON menu_item_ingredients.menu_item_id = menu_items.menu_item_id
+			WHERE menu_items.name = $1
+		`, item.MenuItemID)
+		if err != nil {
+			return err
+		}
 
-// 	if err = o.UpdateStatus(order.OrderID, order.Status); err != nil {
-// 		return err
-// 	}
+		for rows.Next() {
+			var inventoryID int
+			var quantityPerPortion float64
+			if err := rows.Scan(&inventoryID, &quantityPerPortion); err != nil {
+				return err
+			}
+			ingredientNeeds[inventoryID] += quantityPerPortion * float64(item.Quantity)
+		}
+		rows.Close()
+	}
 
-// 	return nil
-// }
+	for inventoryID, neededQty := range ingredientNeeds {
+		var currentStock float64
+		if err := tx.QueryRow(`SELECT stock_level FROM inventory WHERE inventory_id = $1`, inventoryID).Scan(&currentStock); err != nil {
+			return err
+		}
+		if currentStock < neededQty {
+			return fmt.Errorf("not enough stock for ingredient %d: need %.2f, have %.2f", inventoryID, neededQty, currentStock)
+		}
+	}
+
+	for inventoryID, usedQty := range ingredientNeeds {
+		_, err := tx.Exec(`UPDATE inventory SET stock_level = stock_level - $1 WHERE inventory_id = $2`, usedQty, inventoryID)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = tx.Exec(`
+		UPDATE orders
+		SET customer_name = $1, status = 'active', total_amount = $2, order_date = NOW()
+		WHERE order_id = $3
+	`, name, totalAmount, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`
+		DELETE FROM order_items WHERE order_id = $1
+	`, id)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range itemReq {
+		var price float64
+		err := tx.QueryRow(`
+			SELECT price
+			FROM menu_items
+			WHERE name = $1
+		`, item.MenuItemID).Scan(&price)
+		if err != nil {
+			return err
+		}
+
+		var menuItemId int
+		err = tx.QueryRow(`
+			SELECT menu_item_id
+			FROM menu_items
+			WHERE name = $1
+		`, item.MenuItemID).Scan(&menuItemId)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(`
+			INSERT INTO order_items (menu_item_id, order_id, customizations, price_at_order_time, quantity)
+			VALUES($1, $2, '{}', $3, $4)
+		`, menuItemId, id, price, item.Quantity)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO order_status_history (order_id, status)
+		VALUES($1, 'active')
+	`, id)
+	if err != nil {
+		return err
+	}
+	
+	return nil
+}
 
 func (o *Order) Delete(id int) error {
 	tx, err := o.db.Begin()
@@ -309,33 +415,6 @@ func (o *Order) NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOr
 	}
 	return orderCount, nil
 }
-
-// func (o *Order) CreateStatus(id int, status string) error {
-// 	tx, err := o.db.Begin()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer func() {
-// 		if err != nil {
-// 			tx.Rollback()
-// 		}
-// 	}()
-
-// 	query := `
-// 		INSERT INTO order_status_history (order_id, status, changed_at)
-// 		VALUES ($1, $2, $3) RETURNING id
-// 	`
-
-// 	if err = tx.QueryRow(query, id, status, time.Now()).Scan(&id); err != nil {
-// 		return err
-// 	}
-
-// 	if err = tx.Commit(); err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
 
 func (o *Order) UpdateStatus(id int, status string) error {
 	tx, err := o.db.Begin()

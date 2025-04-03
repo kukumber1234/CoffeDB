@@ -10,7 +10,7 @@ type OrdersService interface {
 	Add(name string, itemReq []model.OrderItemRequest) (int, error)
 	GetAll() ([]model.OrderResponse, error)
 	GetByID(id int) (model.OrderResponse, error)
-	// Update(order model.Order) error
+	Update(name string,  id int, itemReq []model.OrderItemRequest) error
 	CloseOrder(id int) error
 	Delete(id int) error
 	NumberOfOrders(startDate, endDate interface{}) (model.NumberOfOrderedItemsResponse, error)
@@ -36,9 +36,9 @@ func (o *Order) GetByID(id int) (model.OrderResponse, error) {
 	return o.repository.GetByID(id)
 }
 
-// func (o *Order) Update(order model.Order) error {
-// 	return o.repository.Update(&order)
-// }
+func (o *Order) Update(name string, id int, itemReq []model.OrderItemRequest) error {
+	return o.repository.Update(name, id, itemReq)
+}
 
 func (o *Order) CloseOrder(id int) error {
 	return o.repository.UpdateStatus(id, "closed")
