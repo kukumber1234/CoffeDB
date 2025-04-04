@@ -1,4 +1,4 @@
-# frappuccino
+# CoffeDB
 ## Learning Objectives
 SQL
 PostgreSQL
